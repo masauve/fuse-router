@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Configures the Camel Context-->
+
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="
+       http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+       http://camel.apache.org/schema/spring http://camel.apache.org/schema/spring/camel-spring.xsd">
+
+  <!-- here is a sample which processes the input files
+         (leaving them in place - see the 'noop' flag)
+         then performs content based routing on the message using XPath -->
+ 
+ <camelContext xmlns="http://camel.apache.org/schema/spring">
+  <endpoint uri="dozer:demoTransfo?sourceModel=generated.Customer&amp;targetModel=cutomer.Cutomer&amp;marshalId=transform-json&amp;unmarshalId=generated&amp;mappingFile=transformation.xml" id="demoTransfo"/>
+  <dataFormats>
+    <jaxb contextPath="generated" id="generated"/>
+    <json library="Jackson" id="transform-json"/>
+  </dataFormats>
+  <route>
+    <from uri="file:src/accountdir?noop=false"/>
+    <to ref="demoTransfo"/>
+    <setBody>
+      <jsonpath>$.account</jsonpath>
+    </setBody>
+    <setBody>
+      <simple>SELECT * FROM ACCOUNT.ACCOUNTS where account_num= '${body}'</simple>
+    </setBody>
+    <to uri="jdbc:accountdb"/> 
+    <choice>
+    	<when>
+    		<simple>${body.size} > '0'</simple>
+    		<log message="Account exist route to queue1"/>
+    	</when>
+    	<otherwise>
+    			<log message="Account doesn't exist"/>
+    	</otherwise>
+    </choice>
+  </route>
+</camelContext>
+
+  <bean id="accountdb" class="org.springframework.jdbc.datasource.DriverManagerDataSource">
+        <property name="driverClassName" value="org.h2.Driver"/>
+        <property name="url" value="jdbc:h2:tcp://localhost/~/accountdb"/>
+        <property name="username" value="sa"/>
+        <property name="password" value=""/>
+       
+    </bean>
+
+</beans>
